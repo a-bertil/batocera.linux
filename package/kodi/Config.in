@@ -2,15 +2,13 @@ config BR2_PACKAGE_KODI_ARCH_SUPPORTS
 	bool
 	default y if BR2_PACKAGE_FFMPEG_ARCH_SUPPORTS
 	# i386: needs sse (see upstream PR 10351)
-	# batocera
-	#depends on !(BR2_i386 && !BR2_X86_CPU_HAS_SSE)
+	depends on !(BR2_i386 && !BR2_X86_CPU_HAS_SSE)
 	depends on BR2_USE_MMU # libcdio, and others
 
-comment "kodi needs python w/ .py modules, a uClibc or glibc toolchain w/ C++, threads, wchar, dynamic library, gcc >= 4.8, host gcc >= 4.6"
+comment "kodi needs python w/ .py modules, a uClibc or glibc toolchain w/ C++, threads, wchar, dynamic library, gcc >= 4.8"
 	depends on BR2_PACKAGE_KODI_ARCH_SUPPORTS
 	depends on !BR2_INSTALL_LIBSTDCPP || !BR2_TOOLCHAIN_HAS_THREADS \
 		|| !BR2_USE_WCHAR || BR2_STATIC_LIBS \
-		|| !BR2_HOST_GCC_AT_LEAST_4_6 \
 		|| !BR2_TOOLCHAIN_GCC_AT_LEAST_4_8 \
 		|| BR2_TOOLCHAIN_USES_MUSL \
 		|| !BR2_PACKAGE_PYTHON \
@@ -19,6 +17,25 @@ comment "kodi needs python w/ .py modules, a uClibc or glibc toolchain w/ C++, t
 config BR2_PACKAGE_KODI_PLATFORM_SUPPORTS
 	bool
 
+config BR2_PACKAGE_KODI_PLATFORM_SUPPORTS_GBM_GL
+	bool
+	default y
+	depends on BR2_ENABLE_LOCALE # libinput
+	depends on BR2_PACKAGE_HAS_LIBGL
+	depends on BR2_PACKAGE_HAS_LIBEGL
+	depends on BR2_PACKAGE_MESA3D_GBM
+	depends on BR2_PACKAGE_HAS_UDEV # libinput
+	select BR2_PACKAGE_KODI_PLATFORM_SUPPORTS
+
+config BR2_PACKAGE_KODI_PLATFORM_SUPPORTS_GBM_GLES
+	bool
+	default y
+	depends on BR2_ENABLE_LOCALE # libinput
+	depends on BR2_PACKAGE_HAS_LIBGLES
+	depends on BR2_PACKAGE_MESA3D_GBM
+	depends on BR2_PACKAGE_HAS_UDEV # libinput
+	select BR2_PACKAGE_KODI_PLATFORM_SUPPORTS
+
 config BR2_PACKAGE_KODI_PLATFORM_SUPPORTS_RBPI
 	bool
 	default y
@@ -26,6 +43,27 @@ config BR2_PACKAGE_KODI_PLATFORM_SUPPORTS_RBPI
 	# https://github.com/xbmc/xbmc/blob/Krypton/project/cmake/scripts/rbpi/ArchSetup.cmake#L12
 	depends on BR2_arm1176jzf_s || BR2_cortex_a7 || BR2_cortex_a53
 	depends on BR2_PACKAGE_RPI_USERLAND
+	select BR2_PACKAGE_KODI_PLATFORM_SUPPORTS
+
+config BR2_PACKAGE_KODI_PLATFORM_SUPPORTS_WAYLAND_GL
+	bool
+	default y
+	depends on BR2_PACKAGE_HAS_LIBEGL_WAYLAND # waylandpp
+	depends on BR2_HOST_GCC_AT_LEAST_4_9 # waylandpp
+	depends on BR2_TOOLCHAIN_GCC_AT_LEAST_4_9 # waylandpp
+	depends on BR2_PACKAGE_WAYLAND # waylandpp
+	select BR2_PACKAGE_WAYLANDPP
+	select BR2_PACKAGE_KODI_PLATFORM_SUPPORTS
+
+config BR2_PACKAGE_KODI_PLATFORM_SUPPORTS_WAYLAND_GLES
+	bool
+	default y
+	depends on BR2_PACKAGE_HAS_LIBGLES
+	depends on BR2_PACKAGE_HAS_LIBEGL_WAYLAND # waylandpp
+	depends on BR2_HOST_GCC_AT_LEAST_4_9 # waylandpp
+	depends on BR2_TOOLCHAIN_GCC_AT_LEAST_4_9 # waylandpp
+	depends on BR2_PACKAGE_WAYLAND # waylandpp
+	select BR2_PACKAGE_WAYLANDPP
 	select BR2_PACKAGE_KODI_PLATFORM_SUPPORTS
 
 config BR2_PACKAGE_KODI_PLATFORM_SUPPORTS_X11_OPENGL
@@ -42,23 +80,24 @@ comment "kodi needs an OpenGL EGL backend with OpenGL support"
 menuconfig BR2_PACKAGE_KODI
 	bool "kodi"
 	depends on BR2_INSTALL_LIBSTDCPP
-	depends on BR2_HOST_GCC_AT_LEAST_4_6
 	depends on BR2_TOOLCHAIN_GCC_AT_LEAST_4_8
 	depends on BR2_TOOLCHAIN_HAS_THREADS
 	depends on !BR2_TOOLCHAIN_USES_MUSL
 	depends on BR2_USE_WCHAR
 	depends on !BR2_STATIC_LIBS # gnutls, python and others
 	depends on BR2_PACKAGE_KODI_ARCH_SUPPORTS
-	# batocera
-	#depends on BR2_PACKAGE_KODI_PLATFORM_SUPPORTS
+	depends on BR2_PACKAGE_KODI_PLATFORM_SUPPORTS
 	depends on BR2_PACKAGE_PYTHON
 	depends on !BR2_PACKAGE_PYTHON_PYC_ONLY
 	select BR2_NEEDS_HOST_JAVA
-	select BR2_PACKAGE_BZIP2
 	select BR2_PACKAGE_EXPAT
+	select BR2_PACKAGE_FLATBUFFERS
+	select BR2_PACKAGE_FMT
 	select BR2_PACKAGE_FONTCONFIG
 	select BR2_PACKAGE_FREETYPE
+	select BR2_PACKAGE_FSTRCMP
 	select BR2_PACKAGE_GNUTLS
+	select BR2_PACKAGE_KODI_SKIN_ESTUARY if !BR2_PACKAGE_KODI_SKIN_ENABLED
 	select BR2_PACKAGE_LIBASS
 	select BR2_PACKAGE_LIBCDIO
 	select BR2_PACKAGE_LIBCROSSGUID
@@ -73,20 +112,20 @@ menuconfig BR2_PACKAGE_KODI
 	select BR2_PACKAGE_PCRE
 	select BR2_PACKAGE_PCRE_UCP
 	select BR2_PACKAGE_PYTHON_BSDDB
-	select BR2_PACKAGE_PYTHON_BZIP2
 	select BR2_PACKAGE_PYTHON_CURSES
 	select BR2_PACKAGE_PYTHON_PYEXPAT
-	select BR2_PACKAGE_PYTHON_READLINE
 	select BR2_PACKAGE_PYTHON_SQLITE
 	select BR2_PACKAGE_PYTHON_SSL
 	select BR2_PACKAGE_PYTHON_UNICODEDATA
 	select BR2_PACKAGE_PYTHON_ZLIB
-	select BR2_PACKAGE_READLINE
+	select BR2_PACKAGE_RAPIDJSON
 	select BR2_PACKAGE_SQLITE
 	select BR2_PACKAGE_TAGLIB
 	select BR2_PACKAGE_TINYXML
-	select BR2_PACKAGE_YAJL
 	select BR2_PACKAGE_ZLIB
+	select BR2_PACKAGE_LIBINPUT
+	select BR2_PACKAGE_LIBXKBCOMMON
+
 	select BR2_TOOLCHAIN_GLIBC_GCONV_LIBS_COPY if BR2_TOOLCHAIN_USES_GLIBC # runtime UTF conversion support
 	help
 	  Kodi is an award-winning free and open source (GPL) software
@@ -97,12 +136,6 @@ menuconfig BR2_PACKAGE_KODI
 if BR2_PACKAGE_KODI
 
 source "package/kodi-platform/Config.in"
-
-# batocera
-config BR2_PACKAGE_KODI_GBM
-       bool "gbm"
-       help
-	 Enable gbm support.
 
 config BR2_PACKAGE_KODI_ALSA_LIB
 	bool "alsa"
@@ -164,11 +197,6 @@ config BR2_PACKAGE_KODI_LCMS2
 	help
 	  Enable color management support.
 
-config BR2_PACKAGE_KODI_LIRC
-	bool "lirc"
-	help
-	  Enable lirc support
-
 config BR2_PACKAGE_KODI_LIBMICROHTTPD
 	bool "web server"
 	depends on BR2_PACKAGE_LIBGPG_ERROR_ARCH_SUPPORTS # libgcrypt, libmicrohttpd
@@ -193,19 +221,44 @@ config BR2_PACKAGE_KODI_MYSQL
 	help
 	  Enable MySQL support
 
-config BR2_PACKAGE_KODI_NONFREE
-	bool "nonfree components"
-	help
-	  Enable components with non-free licenses. This option
-	  currently only controls support for RAR archives.
-
 choice
 	prompt "platform"
 	default BR2_PACKAGE_KODI_PLATFORM_X11_OPENGL
 
+config BR2_PACKAGE_KODI_PLATFORM_GBM_GL
+	bool "gbm/OpenGL"
+	depends on BR2_PACKAGE_KODI_PLATFORM_SUPPORTS_GBM_GL
+	select BR2_PACKAGE_LIBGLU
+	select BR2_PACKAGE_LIBINPUT
+	select BR2_PACKAGE_LIBXKBCOMMON
+
+config BR2_PACKAGE_KODI_PLATFORM_GBM_GLES
+	bool "gbm/GLES"
+	depends on BR2_PACKAGE_KODI_PLATFORM_SUPPORTS_GBM_GLES
+	select BR2_PACKAGE_LIBGLU
+	select BR2_PACKAGE_LIBINPUT
+	select BR2_PACKAGE_LIBXKBCOMMON
+
+comment "gbm support needs OpenGL or GLES support"
+	depends on \
+		BR2_PACKAGE_MESA3D_GBM && \
+		!BR2_PACKAGE_HAS_LIBEGL && \
+		!BR2_PACKAGE_HAS_LIBGLES
+
 config BR2_PACKAGE_KODI_PLATFORM_RBPI
 	bool "Raspberry Pi"
 	depends on BR2_PACKAGE_KODI_PLATFORM_SUPPORTS_RBPI
+
+config BR2_PACKAGE_KODI_PLATFORM_WAYLAND_GL
+	bool "Wayland/OpenGL"
+	depends on BR2_PACKAGE_KODI_PLATFORM_SUPPORTS_WAYLAND_GL
+	select BR2_PACKAGE_LIBGLU
+	select BR2_PACKAGE_LIBXKBCOMMON
+
+config BR2_PACKAGE_KODI_PLATFORM_WAYLAND_GLES
+	bool "Wayland/GLES"
+	depends on BR2_PACKAGE_KODI_PLATFORM_SUPPORTS_WAYLAND_GLES
+	select BR2_PACKAGE_LIBXKBCOMMON
 
 config BR2_PACKAGE_KODI_PLATFORM_X11_OPENGL
 	bool "X11/OpenGL"
@@ -241,12 +294,6 @@ config BR2_PACKAGE_KODI_LIBSMBCLIENT
 	help
 	  Enable Samba support
 
-config BR2_PACKAGE_KODI_LIBSSH
-	bool "ssh"
-	select BR2_PACKAGE_LIBSSH
-	help
-	  Enable sftp virtual filesystem using libssh.
-
 config BR2_PACKAGE_KODI_LIBTHEORA
 	bool "theora"
 	select BR2_PACKAGE_LIBTHEORA
@@ -266,13 +313,23 @@ config BR2_PACKAGE_KODI_LIBUSB
 
 config BR2_PACKAGE_KODI_LIBVA
 	bool "va"
-	depends on BR2_PACKAGE_KODI_PLATFORM_X11_OPENGL
+	depends on \
+		BR2_PACKAGE_KODI_PLATFORM_GBM_GL || \
+		BR2_PACKAGE_KODI_PLATFORM_GBM_GLES || \
+		BR2_PACKAGE_KODI_PLATFORM_WAYLAND_GL || \
+		BR2_PACKAGE_KODI_PLATFORM_WAYLAND_GLES || \
+		BR2_PACKAGE_KODI_PLATFORM_X11_OPENGL
 	select BR2_PACKAGE_LIBVA
 	help
 	  Enable libva support.
 
-comment "libva support needs platform 'X11/OpenGL'"
-	depends on !BR2_PACKAGE_KODI_PLATFORM_X11_OPENGL
+comment "libva support needs platform 'gbm', 'Wayland' or 'X11/OpenGL'"
+	depends on \
+		!BR2_PACKAGE_KODI_PLATFORM_GBM_GL && \
+		!BR2_PACKAGE_KODI_PLATFORM_GBM_GLES && \
+		!BR2_PACKAGE_KODI_PLATFORM_WAYLAND_GL && \
+		!BR2_PACKAGE_KODI_PLATFORM_WAYLAND_GLES && \
+		!BR2_PACKAGE_KODI_PLATFORM_X11_OPENGL
 
 config BR2_PACKAGE_KODI_LIBVDPAU
 	bool "vdpau"
@@ -357,6 +414,40 @@ menu "Screensavers"
 endmenu
 
 menu "Skins"
+
+config BR2_PACKAGE_KODI_SKIN_ENABLED
+	bool
+
+choice
+	prompt "Default skin"
+
+config BR2_PACKAGE_KODI_SKIN_DEFAULT_ESTUARY
+	bool "kodi-skin-estuary"
+	depends on BR2_PACKAGE_KODI_SKIN_ESTUARY
+
+config BR2_PACKAGE_KODI_SKIN_DEFAULT_ESTOUCHY
+	bool "kodi-skin-estouchy"
+	depends on BR2_PACKAGE_KODI_SKIN_ESTOUCHY
+
+config BR2_PACKAGE_KODI_SKIN_DEFAULT_CONFLUENCE
+	bool "kodi-skin-confluence"
+	depends on BR2_PACKAGE_KODI_SKIN_CONFLUENCE
+
+endchoice
+
+config BR2_PACKAGE_KODI_SKIN_ESTUARY
+	bool "kodi-skin-estuary"
+	default y
+	help
+	  Default skin Estuary
+
+config BR2_PACKAGE_KODI_SKIN_ESTOUCHY
+	bool "kodi-skin-estouchy"
+	default y
+	select BR2_PACKAGE_KODI_SKIN_ENABLED
+	help
+	  Default skin Estouchy
+
 	source "package/kodi-skin-confluence/Config.in"
 endmenu
 

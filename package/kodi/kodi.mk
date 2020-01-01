@@ -6,26 +6,31 @@
 
 # When updating the version, please also update kodi-jsonschemabuilder
 # and kodi-texturepacker
-KODI_VERSION = 17.6-Krypton
+KODI_VERSION = 18.5-Leia
 KODI_SITE = $(call github,xbmc,xbmc,$(KODI_VERSION))
 KODI_LICENSE = GPL-2.0
-KODI_LICENSE_FILES = LICENSE.GPL
+KODI_LICENSE_FILES = LICENSE.md
 # needed for binary addons
 KODI_INSTALL_STAGING = YES
+# kodi recommends building out-of-source
+KODI_SUPPORTS_IN_SOURCE_BUILD = NO
 KODI_DEPENDENCIES = \
-	bzip2 \
 	expat \
+	flatbuffers \
+	fmt \
 	fontconfig \
 	freetype \
+	fstrcmp \
 	gnutls \
+	host-flatbuffers \
 	host-gawk \
+	host-gettext \
 	host-gperf \
 	host-kodi-jsonschemabuilder \
 	host-kodi-texturepacker \
 	host-nasm \
 	host-swig \
 	host-xmlstarlet \
-	host-zip \
 	libass \
 	libcdio \
 	libcrossguid \
@@ -38,45 +43,53 @@ KODI_DEPENDENCIES = \
 	openssl \
 	pcre \
 	python \
-	readline \
+	rapidjson \
 	sqlite \
 	taglib \
 	tinyxml \
-	yajl \
 	zlib
 
-KODI_SUBDIR = project/cmake
-
 # taken from tools/depends/target/ffmpeg/FFMPEG-VERSION
-KODI_FFMPEG_VERSION = 3.1.11-Krypton-17.5
+KODI_FFMPEG_VERSION = 4.0.4-Leia-18.4
 KODI_EXTRA_DOWNLOADS += \
 	https://github.com/xbmc/FFmpeg/archive/$(KODI_FFMPEG_VERSION).tar.gz
 
-KODI_LIBDVDCSS_VERSION = 2f12236
-KODI_LIBDVDNAV_VERSION = 981488f
-KODI_LIBDVDREAD_VERSION = 17d99db
+# 1.4.2-Leia-Beta-5
+KODI_LIBDVDCSS_VERSION = e646b950095589e74a2c08cf0c34b758c669aa75
+# 6.0.0-Leia-Alpha-3
+KODI_LIBDVDNAV_VERSION = 9277007ce2263b908e9ce3091cc31b3dd87c351c
+# 6.0.0-Leia-Alpha-3
+KODI_LIBDVDREAD_VERSION = bd6b329f0137ab6a9f779a28dd96f04713735e17
 KODI_EXTRA_DOWNLOADS += \
 	https://github.com/xbmc/libdvdcss/archive/$(KODI_LIBDVDCSS_VERSION).tar.gz \
 	https://github.com/xbmc/libdvdnav/archive/$(KODI_LIBDVDNAV_VERSION).tar.gz \
 	https://github.com/xbmc/libdvdread/archive/$(KODI_LIBDVDREAD_VERSION).tar.gz
 
+define KODI_CPLUFF_AUTOCONF
+	cd $(KODI_SRCDIR)/lib/cpluff && ./autogen.sh
+endef
+KODI_PRE_CONFIGURE_HOOKS += KODI_CPLUFF_AUTOCONF
+KODI_DEPENDENCIES += host-automake host-autoconf host-libtool
+
 KODI_CONF_OPTS += \
 	-DCMAKE_C_FLAGS="$(TARGET_CFLAGS) $(KODI_C_FLAGS)" \
 	-DCMAKE_CXX_FLAGS="$(TARGET_CXXFLAGS) $(KODI_CXX_FLAGS)" \
+	-DENABLE_APP_AUTONAME=OFF \
 	-DENABLE_CCACHE=OFF \
 	-DENABLE_DVDCSS=ON \
 	-DENABLE_INTERNAL_CROSSGUID=OFF \
 	-DENABLE_INTERNAL_FFMPEG=ON \
+	-DENABLE_INTERNAL_FLATBUFFERS=OFF \
 	-DFFMPEG_URL=$(KODI_DL_DIR)/$(KODI_FFMPEG_VERSION).tar.gz \
 	-DKODI_DEPENDSBUILD=OFF \
-	-DENABLE_OPENSSL=ON \
+	-DENABLE_LDGOLD=OFF \
 	-DNATIVEPREFIX=$(HOST_DIR) \
 	-DDEPENDS_PATH=$(STAGING_DIR)/usr \
+	-DWITH_JSONSCHEMABUILDER=$(HOST_DIR)/bin/JsonSchemaBuilder \
 	-DWITH_TEXTUREPACKER=$(HOST_DIR)/bin/TexturePacker \
 	-DLIBDVDCSS_URL=$(KODI_DL_DIR)/$(KODI_LIBDVDCSS_VERSION).tar.gz \
 	-DLIBDVDNAV_URL=$(KODI_DL_DIR)/$(KODI_LIBDVDNAV_VERSION).tar.gz \
-	-DLIBDVDREAD_URL=$(KODI_DL_DIR)/$(KODI_LIBDVDREAD_VERSION).tar.gz \
-	-DENABLE_IMX=OFF
+	-DLIBDVDREAD_URL=$(KODI_DL_DIR)/$(KODI_LIBDVDREAD_VERSION).tar.gz
 
 ifeq ($(BR2_ENABLE_LOCALE),)
 KODI_DEPENDENCIES += libiconv
@@ -88,8 +101,7 @@ ifeq ($(BR2_PACKAGE_KODI_PLATFORM_RBPI),y)
 ifeq ($(BR2_arm1176jzf_s)$(BR2_cortex_a7)$(BR2_cortex_a53),y)
 KODI_CONF_OPTS += -DWITH_CPU="$(GCC_TARGET_CPU)"
 endif
-else
-ifeq ($(BR2_arceb)$(BR2_arcle),y)
+else ifeq ($(BR2_arceb)$(BR2_arcle),y)
 KODI_CONF_OPTS += -DWITH_ARCH=arc -DWITH_CPU=arc
 else ifeq ($(BR2_armeb),y)
 KODI_CONF_OPTS += -DWITH_ARCH=arm -DWITH_CPU=arm
@@ -107,7 +119,6 @@ else
 # Kodi auto-detects ARCH, tested: arm, aarch64, i386, x86_64
 # see project/cmake/scripts/linux/ArchSetup.cmake
 KODI_CONF_OPTS += -DWITH_CPU=$(BR2_ARCH)
-endif
 endif
 
 ifeq ($(BR2_X86_CPU_HAS_SSE),y)
@@ -163,27 +174,45 @@ ifeq ($(BR2_TOOLCHAIN_HAS_LIBATOMIC),y)
 KODI_CXX_FLAGS += -latomic
 endif
 
+ifeq ($(BR2_PACKAGE_KODI_PLATFORM_GBM_GL),y)
+KODI_CONF_OPTS += \
+	-DCORE_PLATFORM_NAME=gbm \
+	-DGBM_RENDER_SYSTEM=gl
+KODI_DEPENDENCIES += libegl libglu libinput libxkbcommon mesa3d
+endif
+
+ifeq ($(BR2_PACKAGE_KODI_PLATFORM_GBM_GLES),y)
+KODI_CONF_OPTS += \
+	-DCORE_PLATFORM_NAME=gbm \
+	-DGBM_RENDER_SYSTEM=gles
+KODI_DEPENDENCIES += libgles libinput libxkbcommon mesa3d
+endif
+
 ifeq ($(BR2_PACKAGE_KODI_PLATFORM_RBPI),y)
-KODI_CONF_OPTS += -DCORE_SYSTEM_NAME=rbpi -DENABLE_OPENGLES=ON
-KODI_DEPENDENCIES += rpi-userland
-else
-# Kodi considers "rpbi" and "linux" as two separate platforms. The
-# below options, defined in
-# project/cmake/scripts/linux/ArchSetup.cmake are only valid for the
-# "linux" platforms. The "rpbi" platform has a different set of
-# options, defined in project/cmake/scripts/rbpi/
-KODI_CONF_OPTS += -DENABLE_LDGOLD=OFF
+KODI_CONF_OPTS += -DCORE_PLATFORM_NAME=rbpi
+KODI_DEPENDENCIES += rpi-userland libinput libxkbcommon 
+endif
+
+ifeq ($(BR2_PACKAGE_KODI_PLATFORM_WAYLAND_GL),y)
+KODI_CONF_OPTS += \
+	-DCORE_PLATFORM_NAME=wayland \
+	-DWAYLAND_RENDER_SYSTEM=gl
+KODI_DEPENDENCIES += libegl libgl libglu libxkbcommon waylandpp
+endif
+
+ifeq ($(BR2_PACKAGE_KODI_PLATFORM_WAYLAND_GLES),y)
+KODI_CONF_OPTS += \
+	-DCORE_PLATFORM_NAME=wayland \
+	-DWAYLAND_RENDER_SYSTEM=gles
+KODI_C_FLAGS += `$(PKG_CONFIG_HOST_BINARY) --cflags egl`
+KODI_CXX_FLAGS += `$(PKG_CONFIG_HOST_BINARY) --cflags egl`
+KODI_DEPENDENCIES += libegl libgles libxkbcommon waylandpp
 endif
 
 ifeq ($(BR2_PACKAGE_KODI_PLATFORM_X11_OPENGL),y)
-KODI_CONF_OPTS += \
-	-DENABLE_OPENGL=ON \
-	-DENABLE_OPENGLES=OFF \
-	-DENABLE_X11=ON
+KODI_CONF_OPTS += -DCORE_PLATFORM_NAME=x11
 KODI_DEPENDENCIES += libegl libglu libgl xlib_libX11 xlib_libXext \
 	xlib_libXrandr libdrm
-else
-KODI_CONF_OPTS += -DENABLE_OPENGL=OFF -DENABLE_X11=OFF
 endif
 
 ifeq ($(BR2_PACKAGE_KODI_MYSQL),y)
@@ -191,14 +220,6 @@ KODI_CONF_OPTS += -DENABLE_MYSQLCLIENT=ON
 KODI_DEPENDENCIES += mysql
 else
 KODI_CONF_OPTS += -DENABLE_MYSQLCLIENT=OFF
-endif
-
-ifeq ($(BR2_PACKAGE_KODI_NONFREE),y)
-KODI_CONF_OPTS += -DENABLE_NONFREE=ON
-KODI_LICENSE := $(KODI_LICENSE), unrar
-KODI_LICENSE_FILES += lib/UnrarXLib/license.txt
-else
-KODI_CONF_OPTS += -DENABLE_NONFREE=OFF
 endif
 
 ifeq ($(BR2_PACKAGE_HAS_UDEV),y)
@@ -253,16 +274,6 @@ else
 KODI_CONF_OPTS += -DENABLE_ALSA=OFF
 endif
 
-# batocera
-ifeq ($(BR2_PACKAGE_KODI_GBM),y)
-  ifeq ($(BR2_PACKAGE_MESA3D),y)
-    KODI_DEPENDENCIES += mesa3d
-  endif
-KODI_CONF_OPTS += -DENABLE_GBM=ON
-else
-KODI_CONF_OPTS += -DENABLE_GBM=OFF
-endif
-
 ifeq ($(BR2_PACKAGE_KODI_LIBMICROHTTPD),y)
 KODI_CONF_OPTS += -DENABLE_MICROHTTPD=ON
 KODI_DEPENDENCIES += libmicrohttpd
@@ -298,13 +309,6 @@ else
 KODI_CONF_OPTS += -DENABLE_AIRTUNES=OFF
 endif
 
-ifeq ($(BR2_PACKAGE_KODI_LIBSSH),y)
-KODI_DEPENDENCIES += libssh
-KODI_CONF_OPTS += -DENABLE_SSH=ON
-else
-KODI_CONF_OPTS += -DENABLE_SSH=OFF
-endif
-
 ifeq ($(BR2_PACKAGE_KODI_AVAHI),y)
 KODI_DEPENDENCIES += avahi
 KODI_CONF_OPTS += -DENABLE_AVAHI=ON
@@ -326,10 +330,8 @@ else
 KODI_CONF_OPTS += -DENABLE_LCMS2=OFF
 endif
 
-ifeq ($(BR2_PACKAGE_KODI_LIRC),y)
-KODI_CONF_OPTS += -DENABLE_LIRC=ON
-else
-KODI_CONF_OPTS += -DENABLE_LIRC=OFF
+ifeq ($(BR2_PACKAGE_LIRC_TOOLS),y)
+KODI_DEPENDENCIES += lirc-tools
 endif
 
 ifeq ($(BR2_PACKAGE_KODI_LIBTHEORA),y)
@@ -381,6 +383,64 @@ define KODI_CLEAN_UNUSED_ADDONS
 endef
 KODI_POST_INSTALL_TARGET_HOOKS += KODI_CLEAN_UNUSED_ADDONS
 
+# Skins estuary and estouchy are installed by default and need to be
+# removed if they are disabled in buildroot
+ifeq ($(BR2_PACKAGE_KODI_SKIN_ESTUARY),y)
+define KODI_CLEAN_SKIN_ESTUARY
+	find $(TARGET_DIR)/usr/share/kodi/addons/skin.estuary/media -name *.gif -delete
+	find $(TARGET_DIR)/usr/share/kodi/addons/skin.estuary/media -name *.jpg -delete
+	find $(TARGET_DIR)/usr/share/kodi/addons/skin.estuary/media -name *.png -delete
+endef
+KODI_POST_INSTALL_TARGET_HOOKS += KODI_CLEAN_SKIN_ESTUARY
+else
+define KODI_REMOVE_SKIN_ESTUARY
+	rm -Rf $(TARGET_DIR)/usr/share/kodi/addons/skin.estuary
+	$(HOST_DIR)/bin/xml ed -L \
+		-d "/addons/addon[text()='skin.estuary']" \
+		$(KODI_ADDON_MANIFEST)
+endef
+KODI_POST_INSTALL_TARGET_HOOKS += KODI_REMOVE_SKIN_ESTUARY
+endif
+
+ifeq ($(BR2_PACKAGE_KODI_SKIN_ESTOUCHY),y)
+define KODI_CLEAN_SKIN_ESTOUCHY
+	find $(TARGET_DIR)/usr/share/kodi/addons/skin.estouchy/media -name *.gif -delete
+	find $(TARGET_DIR)/usr/share/kodi/addons/skin.estouchy/media -name *.jpg -delete
+	find $(TARGET_DIR)/usr/share/kodi/addons/skin.estouchy/media -name *.png -delete
+endef
+KODI_POST_INSTALL_TARGET_HOOKS += KODI_CLEAN_SKIN_ESTOUCHY
+else
+define KODI_REMOVE_SKIN_ESTOUCHY
+	rm -Rf $(TARGET_DIR)/usr/share/kodi/addons/skin.estouchy
+	$(HOST_DIR)/bin/xml ed -L \
+		-d "/addons/addon[text()='skin.estouchy']" \
+		$(KODI_ADDON_MANIFEST)
+endef
+KODI_POST_INSTALL_TARGET_HOOKS += KODI_REMOVE_SKIN_ESTOUCHY
+endif
+
+# The default value 'skin.estuary' is stored in
+# xbmc/system/settings/settings.xml.
+# If skin estuary is disabled this value needs to be changed to avoid
+# https://github.com/xbmc/xbmc/blob/32a6916059a0b14ab5fc65cedb17b2615c039918/xbmc/Application.cpp#L1124
+
+define KODI_SET_DEFAULT_SKIN_ESTOUCHY
+	$(SED) 's/skin.estuary/skin.estouchy/#g' $(TARGET_DIR)/usr/share/kodi/system/settings/settings.xml
+endef
+
+define KODI_SET_DEFAULT_SKIN_CONFLUENCE
+	$(SED) 's/skin.estuary/skin.confluence/#g' $(TARGET_DIR)/usr/share/kodi/system/settings/settings.xml
+	$(HOST_DIR)/bin/xml ed -L -O --subnode "/addons" \
+		-t elem -n "addon" -v "skin.confluence" \
+		$(KODI_ADDON_MANIFEST)
+endef
+
+ifeq ($(BR2_PACKAGE_KODI_SKIN_DEFAULT_ESTOUCHY),y)
+KODI_POST_INSTALL_TARGET_HOOKS += KODI_SET_DEFAULT_SKIN_ESTOUCHY
+else ifeq ($(BR2_PACKAGE_KODI_SKIN_DEFAULT_CONFLUENCE),y)
+KODI_POST_INSTALL_TARGET_HOOKS += KODI_SET_DEFAULT_SKIN_CONFLUENCE
+endif
+
 define KODI_INSTALL_BR_WRAPPER
 	$(INSTALL) -D -m 0755 package/kodi/br-kodi \
 		$(TARGET_DIR)/usr/bin/br-kodi
@@ -414,10 +474,5 @@ define KODI_INSTALL_INIT_SYSTEMD
 	ln -fs ../../../../usr/lib/systemd/system/kodi.service \
 		$(TARGET_DIR)/etc/systemd/system/multi-user.target.wants/kodi.service
 endef
-
-# batocera - kodi segfaults when not with -O0 on arm
-ifeq ($(BR2_arm),y)
-KODI_CONF_OPTS += -DCMAKE_CXX_FLAGS="`echo $(TARGET_CXXFLAGS) | sed -e s+'-O[1-3]'+' '+` -O0" -DCMAKE_C_FLAGS="`echo $(TARGET_CFLAGS) | sed -e s+'-O[1-3]'+' '+` -O0"
-endif
 
 $(eval $(cmake-package))
