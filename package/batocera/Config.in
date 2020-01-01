@@ -191,8 +191,6 @@ menu "Emulators"
 endmenu
 
 menu "Kodi"
-  source "package/batocera/kodi/kodi-joystick/Config.in"
-  source "package/batocera/kodi/kodi-plugin-video-filmon/Config.in"
   source "package/batocera/kodi/kodi-superrepo-all/Config.in"
   source "package/batocera/kodi/kodi-superrepo-repositories/Config.in"
   source "package/batocera/kodi/kodi-resource-language-de_de/Config.in"

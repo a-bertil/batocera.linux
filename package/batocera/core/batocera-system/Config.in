@@ -407,7 +407,7 @@ config BR2_PACKAGE_BATOCERA_MUPEN64
 config BR2_PACKAGE_BATOCERA_KODI
        bool "batocera.linux Kodi packages selection"
        select BR2_PACKAGE_KODI              # kodi
-       select BR2_PACKAGE_KODI_JOYSTICK     # joysticks for kodi
+       select BR2_PACKAGE_KODI_PERIPHERAL_JOYSTICK     # joysticks for kodi
        select BR2_PACKAGE_PYTHON_PYOPENSSL  # used by some kodi plugins
        select BR2_PACKAGE_X264              # decoder
        select BR2_PACKAGE_X265              # decoder
@@ -482,6 +482,7 @@ config BR2_PACKAGE_BATOCERA_KODI
        select BR2_PACKAGE_KODI_PVR_WMC
        select BR2_PACKAGE_KODI_UPNP
        select BR2_PACKAGE_KODI_LIBBLURAY
+       select BR2_PACKAGE_KODI_PLATFORM_SUPPORTS
 
        #
        select BR2_PACKAGE_KODI_SUPERREPO_REPOSITORIES
